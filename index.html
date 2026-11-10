@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ATURIVA - Pengingat Tugas</title>
+    <link href="./src/output.css" rel="stylesheet">
+</head>
+
+<body class="bg-slate-100 min-h-screen">
+
+    <header class="bg-fuchsia-800 text-white p-8 rounded-b-lg">
+        <div class="max-w-4xl mx-auto">
+            <h1 class="text-3xl font-bold">AturIva</h1>
+            <p class="mt-2">Atur Tugas <span class="font-semibold"> Lebih Mudah,</span> Ingat Waktu <span class="font-semibold"> Tanpa Lupa!</span></p>
+                        
+            <p class="mt-1 text-sm">Catat tugas sekolah agar tidak lupa deadline.</p>
+        </div>
+    </header>
+
+    <main class="max-w-4xl mx-auto p-6">
+
+        <section class="grid grid-cols-3 gap-3 mb-6">
+            <div class="bg-white p-4 rounded-xl shadow">
+                <p>Total Tugas</p>
+                <h2 id="total" class="text-2xl font-bold text-pink-500">0</h2>
+            </div>
+
+            <div class="bg-white p-4 rounded-xl shadow">
+                <p>Belum Selesai</p>
+                <h2 id="pending" class="text-2xl font-bold text-violet-400">0</h2>
+            </div>
+
+            <div class="bg-white p-4 rounded-xl shadow">
+                <p>Selesai</p>
+                <h2 id="done" class="text-2xl font-bold text-teal-400">0</h2>
+            </div>
+        </section>
+
+        <section class="bg-white p-6 rounded-xl shadow mb-6">
+            <h2 class="text-xl font-bold mb-4">Tambah Tugas</h2>
+
+            <form id="form" class="space-y-3">
+
+                <input id="nama" type="text"
+                    placeholder="Nama tugas"
+                    class="w-full border p-3 rounded-lg" required>
+
+                <input id="mapel" type="text"
+                    placeholder="Mata pelajaran"
+                    class="w-full border p-3 rounded-lg" required>
+
+                <input id="deadline" type="date"
+                    class="w-full border p-3 rounded-lg" required>
+
+                <select id="prioritas"
+                    class="w-full border p-3 rounded-lg">
+                    <option value="Tinggi">Prioritas Tinggi</option>
+                    <option value="Sedang" selected>Prioritas Sedang</option>
+                    <option value="Rendah">Prioritas Rendah</option>
+                </select>
+
+                <button type="submit"
+                    class="w-full bg-fuchsia-800 text-white p-3 rounded-lg hover:bg-fuchsia-900">
+                    + Tambahkan Tugas
+                </button>
+
+            </form>
+        </section>
+
+
+<!-- NOTIFIKASI ATURIVA -->
+<section class="bg-white p-6 rounded-xl shadow mb-6">
+
+    <div class="flex justify-between items-center">
+        <h2 class="text-xl font-bold">🔔 Pengingat Deadline</h2>
+
+        <button onclick="aktifkanNotifikasi()"
+            class="bg-fuchsia-700 text-white px-3 py-2 rounded-lg text-sm">
+            Aktifkan Notifikasi
+        </button>
+    </div>
+
+    <p class="text-sm text-gray-500 mt-2">
+        Jangan sampai lupa mengumpulkan tugas!
+    </p>
+
+    <div id="pengingat" class="mt-4 space-y-3">
+        <p class="text-gray-400 text-sm">
+            Belum ada pengingat.
+        </p>
+    </div>
+
+</section>
+
+
+        <section class="bg-white p-6 rounded-xl shadow">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-xl font-bold">Daftar Tugas</h2>
+
+                <select id="filter" class="border p-2 rounded-lg">
+                    <option value="all">Semua</option>
+                    <option value="pending">Belum Selesai</option>
+                    <option value="done">Selesai</option>
+                </select>
+            </div>
+
+            <div id="daftar" class="space-y-3"></div>
+        </section>
+
+    </main>
+
+    <script>
+        let tugas = JSON.parse(localStorage.getItem("tugas")) || [];
+
+        const form = document.getElementById("form");
+        const daftar = document.getElementById("daftar");
+        const filter = document.getElementById("filter");
+
+        function simpan() {
+            localStorage.setItem("tugas", JSON.stringify(tugas));
+        }
+
+        function tampilkan() {
+            daftar.innerHTML = "";
+
+            const pilihan = filter.value;
+
+            let hasil = tugas.filter(t => {
+                if (pilihan === "pending") return !t.selesai;
+                if (pilihan === "done") return t.selesai;
+                return true;
+            });
+
+            hasil.sort((a, b) => a.deadline.localeCompare(b.deadline));
+
+            hasil.forEach((t, index) => {
+                const asli = tugas.indexOf(t);
+
+                const warna =
+                    t.prioritas === "Tinggi" ? "bg-red-100 text-red-700" :
+                    t.prioritas === "Sedang" ? "bg-yellow-100 text-yellow-700" :
+                    "bg-green-100 text-green-700";
+
+                const card = document.createElement("div");
+                card.className = "border p-4 rounded-lg flex flex-col gap-3 sm:flex-row sm:justify-between " +
+                    (t.selesai ? "opacity-60" : "");
+
+                const info = document.createElement("div");
+
+                const judul = document.createElement("h3");
+                judul.className = "font-bold text-lg";
+                judul.textContent = t.nama;
+                if (t.selesai) judul.classList.add("line-through");
+
+                const detail = document.createElement("p");
+                detail.className = "text-sm text-gray-500";
+                detail.textContent = t.mapel + " • Deadline: " +
+                    new Date(t.deadline + "T00:00:00").toLocaleDateString("id-ID");
+
+                const badge = document.createElement("span");
+                badge.className = "inline-block mt-2 px-3 py-1 rounded-full text-xs " + warna;
+                badge.textContent = "Prioritas " + t.prioritas;
+
+                info.append(judul, detail, badge);
+
+                const tombol = document.createElement("div");
+                tombol.className = "flex gap-2";
+
+                const selesai = document.createElement("button");
+                selesai.className = "bg-green-100 text-green-700 px-3 py-2 rounded-lg text-sm";
+                selesai.textContent = t.selesai ? "Batalkan" : "Selesai";
+
+                selesai.onclick = () => {
+                    tugas[asli].selesai = !tugas[asli].selesai;
+                    simpan();
+                    tampilkan();
+                };
+
+                const hapus = document.createElement("button");
+                hapus.className = "bg-red-100 text-red-700 px-3 py-2 rounded-lg text-sm";
+                hapus.textContent = "Hapus";
+
+                hapus.onclick = () => {
+                    if (confirm("Hapus tugas ini?")) {
+                        tugas.splice(asli, 1);
+                        simpan();
+                        tampilkan();
+                    }
+                };
+
+                tombol.append(selesai, hapus);
+                card.append(info, tombol);
+                daftar.append(card);
+            });
+
+            document.getElementById("total").textContent = tugas.length;
+            document.getElementById("pending").textContent =
+                tugas.filter(t => !t.selesai).length;
+            document.getElementById("done").textContent =
+                tugas.filter(t => t.selesai).length;
+
+            if (hasil.length === 0) {
+                const kosong = document.createElement("p");
+                kosong.className = "text-center text-gray-400 p-6";
+                kosong.textContent = "Belum ada tugas.";
+                daftar.append(kosong);
+            }
+        }
+
+        form.addEventListener("submit", function(e) {
+            e.preventDefault();
+
+            tugas.push({
+                nama: document.getElementById("nama").value.trim(),
+                mapel: document.getElementById("mapel").value.trim(),
+                deadline: document.getElementById("deadline").value,
+                prioritas: document.getElementById("prioritas").value,
+                selesai: false
+            });
+
+            simpan();
+            form.reset();
+            tampilkan();
+        });
+
+        filter.addEventListener("change", tampilkan);
+
+
+// Meminta izin notifikasi browser
+function aktifkanNotifikasi() {
+    if (!("Notification" in window)) {
+        alert("Browser kamu tidak mendukung notifikasi.");
+        return;
+    }
+
+    Notification.requestPermission().then(permission => {
+        if (permission === "granted") {
+            alert("Notifikasi Aturiva berhasil diaktifkan!");
+            cekDeadline();
+        } else {
+            alert("Izin notifikasi belum diberikan.");
+        }
+    });
+}
+
+// Mengecek deadline tugas
+function cekDeadline() {
+    const pengingat = document.getElementById("pengingat");
+    pengingat.innerHTML = "";
+
+    const hariIni = new Date();
+    hariIni.setHours(0, 0, 0, 0);
+
+    let jumlahPengingat = 0;
+
+    tugas.forEach(t => {
+        if (t.selesai) return;
+
+        const deadline = new Date(t.deadline + "T00:00:00");
+        const selisih = Math.round(
+            (deadline - hariIni) / (1000 * 60 * 60 * 24)
+        );
+
+        let pesan = "";
+
+        if (selisih === 3) {
+            pesan = "Deadline tinggal 3 hari lagi!";
+        } else if (selisih === 1) {
+            pesan = "Deadline tinggal 1 hari lagi!";
+        } else if (selisih === 0) {
+            pesan = "Deadline hari ini!";
+        }
+
+        if (!pesan) return;
+
+        jumlahPengingat++;
+
+        // Notifikasi di dalam website
+        const card = document.createElement("div");
+        card.className =
+            "bg-yellow-50 border border-yellow-200 p-4 rounded-lg";
+
+        const judul = document.createElement("p");
+        judul.className = "font-bold text-yellow-800";
+        judul.textContent = "🔔 " + pesan;
+
+        const detail = document.createElement("p");
+        detail.className = "text-sm text-gray-600 mt-1";
+        detail.textContent = t.mapel + " - " + t.nama;
+
+        card.append(judul, detail);
+        pengingat.append(card);
+
+        // Notifikasi browser hanya sekali per tugas
+        // pada setiap tahap pengingat.
+        const key = [
+            "aturiva",
+            t.nama,
+            t.deadline,
+            selisih
+        ].join("-");
+
+        const sudahDikirim =
+            localStorage.getItem(key);
+
+        if (
+            Notification.permission === "granted" &&
+            !sudahDikirim
+        ) {
+            new Notification("Pengingat Aturiva 🔔", {
+                body: pesan + " " + t.nama,
+                icon: ""
+            });
+
+            localStorage.setItem(key, "true");
+        }
+    });
+
+    if (jumlahPengingat === 0) {
+        const kosong = document.createElement("p");
+        kosong.className = "text-gray-400 text-sm";
+        kosong.textContent =
+            "Belum ada deadline yang mendekat. Kamu aman <3";
+
+        pengingat.append(kosong);
+    }
+}
+
+
+        tampilkan();
+        cekDeadline();
+        setInterval(cekDeadline, 60000);
+
+    </script>
+
+</body>
+</html>
